@@ -713,16 +713,17 @@ class Commands:
 
         filenames = parse_quoted_filenames(args)
         for word in filenames:
-            # Expand tilde in the path
-            expanded_word = os.path.expanduser(word)
+            # Expand tilde and convert to absolute path
+            expanded_word = os.path.abspath(os.path.expanduser(word))
 
-            # Handle read-only files separately, without glob_filtered_to_repo
-            read_only_matched = [f for f in self.coder.abs_read_only_fnames if expanded_word in f]
+            # Handle read-only files
+            read_only_matched = [f for f in self.coder.abs_read_only_fnames if os.path.samefile(expanded_word, f)]
 
             if read_only_matched:
                 for matched_file in read_only_matched:
                     self.coder.abs_read_only_fnames.remove(matched_file)
                     self.io.tool_output(f"Removed read-only file {matched_file} from the chat")
+                continue
 
             matched_files = self.glob_filtered_to_repo(expanded_word)
 
