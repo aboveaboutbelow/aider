@@ -337,8 +337,8 @@ class InputOutput:
             session_kwargs = {
                 "message": show,
                 "completer": completer_instance,
-                "reserve_space_for_menu": 4,
-                "complete_style": CompleteStyle.MULTI_COLUMN,
+                "reserve_space_for_menu": 10,
+                "complete_style": CompleteStyle.COLUMN,
                 "input": self.input,
                 "output": self.output,
                 "lexer": PygmentsLexer(MarkdownLexer),
