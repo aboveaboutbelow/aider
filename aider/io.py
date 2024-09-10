@@ -301,7 +301,7 @@ class InputOutput:
         rel_fnames = list(rel_fnames)
         show = ""
         if rel_fnames:
-            show = " ".join(rel_fnames) + "\n"
+            show = " ".join(os.path.basename(fname) for fname in rel_fnames) + "\n"
         if edit_format:
             show += edit_format
         show += "> "
