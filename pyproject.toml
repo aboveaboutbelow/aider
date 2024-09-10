@@ -2,9 +2,9 @@
 # from aider.help_pats import exclude_website_pats
 # ]]]
 # [[[end]]]
-
 [project]
 name = "aider-chat"
+version = "0.56.1.post1"
 description = "Aider is AI pair programming in your terminal"
 readme = "README.md"
 classifiers = [
@@ -21,30 +21,23 @@ classifiers = [
     "Topic :: Software Development",
 ]
 requires-python = ">=3.9,<3.13"
-dynamic = ["dependencies", "optional-dependencies", "version"]
-
+dynamic = ["dependencies", "optional-dependencies"]
 [project.urls]
 Homepage = "https://github.com/paul-gauthier/aider"
-
 [project.scripts]
 aider = "aider.main:main"
-
 [tool.setuptools.dynamic]
 dependencies = { file = "requirements.txt" }
-
 [tool.setuptools.dynamic.optional-dependencies]
 dev = { file = "requirements/requirements-dev.txt" }
 help = { file = "requirements/requirements-help.txt" }
 browser = { file = "requirements/requirements-browser.txt" }
 playwright = { file = "requirements/requirements-playwright.txt" }
-
 [tool.setuptools.packages.find]
 include = ["aider*", "aider.website"]
-
 [tool.setuptools.package-data]
 "aider" = ["queries/*.scm"]
 "aider.website" = ["**/*.md"]
-
 [tool.setuptools.exclude-package-data]
 "aider.website" = [
 # [[[cog
@@ -60,10 +53,6 @@ include = ["aider*", "aider.website"]
 "assets/**",
 # [[[end]]]
 ]
-
 [build-system]
 requires = ["setuptools>=68", "setuptools_scm[toml]>=8"]
 build-backend = "setuptools.build_meta"
-
-[tool.setuptools_scm]
-write_to = "aider/__version__.py"
