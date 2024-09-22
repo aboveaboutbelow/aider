@@ -18,7 +18,8 @@ from datetime import datetime
 from json.decoder import JSONDecodeError
 from pathlib import Path
 
-from aider import __version__, models, prompts, urls, utils
+from aider.__version__ import __version__
+from aider import models, prompts, urls, utils
 from aider.commands import Commands
 from aider.history import ChatSummary
 from aider.io import ConfirmGroup, InputOutput
