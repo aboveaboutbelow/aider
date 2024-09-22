@@ -16,6 +16,28 @@ cog.out(text)
 
 # Release history
 
+### Aider v0.57.1
+
+- Fixed dependency conflict between aider-chat[help] and [playwright].
+
+### Aider v0.57.0
+
+- Support for OpenAI o1 models:
+  - o1-preview now works well with diff edit format.
+  - o1-preview with diff now matches SOTA leaderboard result with whole edit format.
+  - `aider --model o1-mini`
+  - `aider --model o1-preview`
+- On Windows, `/run` correctly uses PowerShell or cmd.exe.
+- Support for new 08-2024 Cohere models, by @jalammar.
+- Can now recursively add directories with `/read-only`.
+- User input prompts now fall back to simple `input()` if `--no-pretty` or a Windows console is not available.
+- Improved sanity check of git repo on startup.
+- Improvements to prompt cache chunking strategy.
+- Removed "No changes made to git tracked files".
+- Numerous bug fixes for corner case crashes.
+- Updated all dependency versions.
+- Aider wrote 70% of the code in this release.
+
 ### Aider v0.56.0
 
 - Enables prompt caching for Sonnet via OpenRouter by @fry69
@@ -703,7 +725,7 @@ cog.out(text)
 
 - Added `/git` command to run git from inside aider chats.
 - Use Meta-ENTER (Esc+ENTER in some environments) to enter multiline chat messages.
-- Create a `.gitignore` with `.aider*` to prevent users from accidentaly adding aider files to git.
+- Create a `.gitignore` with `.aider*` to prevent users from accidentally adding aider files to git.
 - Check pypi for newer versions and notify user.
 - Updated keyboard interrupt logic so that 2 ^C in 2 seconds always forces aider to exit.
 - Provide GPT with detailed error if it makes a bad edit block, ask for a retry.

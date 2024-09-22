@@ -4,7 +4,7 @@
 # [[[end]]]
 [project]
 name = "aider-chat"
-version = "0.56.1.post1"
+version = "0.57.2"
 description = "Aider is AI pair programming in your terminal"
 readme = "README.md"
 classifiers = [
@@ -56,3 +56,10 @@ include = ["aider*", "aider.website"]
 [build-system]
 requires = ["setuptools>=68", "setuptools_scm[toml]>=8"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+write_to = "aider/__version__.py"
+
+[tool.codespell]
+skip = "*.svg,Gemfile.lock"
+write-changes = true
