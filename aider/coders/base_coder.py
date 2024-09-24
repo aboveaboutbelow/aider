@@ -1469,6 +1469,11 @@ class Coder:
             raise FinishReasonLength()
 
     def show_send_output_stream(self, completion):
+        import shutil
+
+        terminal_width = shutil.get_terminal_size().columns
+        current_line = ""
+
         for chunk in completion:
             if len(chunk.choices) == 0:
                 continue
@@ -1481,7 +1486,6 @@ class Coder:
 
             try:
                 func = chunk.choices[0].delta.function_call
-                # dump(func)
                 for k, v in func.items():
                     if k in self.partial_response_function_call:
                         self.partial_response_function_call[k] += v
@@ -1500,16 +1504,26 @@ class Coder:
             if self.show_pretty():
                 self.live_incremental_response(False)
             elif text:
-                try:
-                    sys.stdout.write(text)
-                except UnicodeEncodeError:
-                    # Safely encode and decode the text
-                    safe_text = text.encode(sys.stdout.encoding, errors="backslashreplace").decode(
-                        sys.stdout.encoding
-                    )
-                    sys.stdout.write(safe_text)
-                sys.stdout.flush()
+                for char in text:
+                    current_line += char
+                    if char == '\n' or len(current_line) >= terminal_width:
+                        try:
+                            sys.stdout.write(current_line)
+                            sys.stdout.flush()
+                        except UnicodeEncodeError:
+                            safe_text = current_line.encode(sys.stdout.encoding, errors="backslashreplace").decode(
+                                sys.stdout.encoding
+                            )
+                            sys.stdout.write(safe_text)
+                            sys.stdout.flush()
+                        current_line = ""
                 yield text
+
+        # Output any remaining text
+        if current_line:
+            sys.stdout.write(current_line)
+            sys.stdout.flush()
+
 
     def live_incremental_response(self, final):
         show_resp = self.render_incremental_response(final)
