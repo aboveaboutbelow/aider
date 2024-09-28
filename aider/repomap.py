@@ -666,7 +666,7 @@ def get_random_color():
 def get_scm_fname(lang):
     # Load the tags queries
     try:
-        return resources.files(__package__).joinpath("queries", f"tree-sitter-{lang}-tags.scm")
+        return resources.files(__package__).joinpath(f"queries/tree-sitter-{lang}-tags.scm")
     except KeyError:
         return
 
