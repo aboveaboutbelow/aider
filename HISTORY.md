@@ -1,6 +1,22 @@
 
 # Release history
 
+### main branch
+
+- [Use a pair of Architect/Editor models for improved coding](https://aider.chat/2024/09/26/architect.html)
+  - Use a strong reasoning model like o1-preview as your Architect.
+  - Use a cheaper, faster model like gpt-4o as your Editor.
+- New `--o1-preview` and `--o1-mini` shortcuts.
+- New settings for completion menu colors, by @smh.
+- New `--voice-format` switch to send voice audio as wav/mp3/webm, by @mbailey.
+- Support for new Gemini 002 models.
+- Will now follow HTTP redirects when scraping urls.
+- ModelSettings takes `extra_params` dict to specify any extras to pass to `litellm.completion()`.
+- Renamed `/clipboard` to `/paste`.
+- Support for litellm's `extra_body` parameter, by @hypn4.
+- Support for cursor shapes when in vim mode.
+- Numerous bug fixes.
+
 ### Aider v0.57.1
 
 - Fixed dependency conflict between aider-chat[help] and [playwright].

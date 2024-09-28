@@ -946,6 +946,10 @@ class Commands:
         "Ask for changes to your code"
         return self._generic_chat_command(args, self.coder.main_model.edit_format)
 
+    def cmd_architect(self, args):
+        "Enter architect mode to discuss high-level design and architecture"
+        return self._generic_chat_command(args, "architect")
+
     def _generic_chat_command(self, args, edit_format):
         if not args.strip():
             self.io.tool_error(f"Please provide a question or topic for the {edit_format} chat.")
@@ -998,7 +1002,7 @@ class Commands:
                 self.io.tool_error("To use /voice you must provide an OpenAI API key.")
                 return
             try:
-                self.voice = voice.Voice()
+                self.voice = voice.Voice(audio_format=self.args.voice_format)
             except voice.SoundDeviceError:
                 self.io.tool_error(
                     "Unable to import `sounddevice` and/or `soundfile`, is portaudio installed?"
@@ -1036,8 +1040,9 @@ class Commands:
 
         return text
 
-    def cmd_clipboard(self, args):
-        "Add image/text from the clipboard to the chat (optionally provide a name for the image)"
+    def cmd_paste(self, args):
+        """Paste image/text from the clipboard into the chat.
+        Optionally provide a name for the image."""
         try:
             # Check for image first
             image = ImageGrab.grabclipboard()
@@ -1154,6 +1159,33 @@ class Commands:
         "Print out the current settings"
         settings = format_settings(self.parser, self.args)
         self.io.tool_output(settings)
+
+    def cmd_copy(self, args):
+        "Copy the last assistant message to the clipboard"
+        all_messages = self.coder.done_messages + self.coder.cur_messages
+        assistant_messages = [msg for msg in reversed(all_messages) if msg["role"] == "assistant"]
+
+        if not assistant_messages:
+            self.io.tool_error("No assistant messages found to copy.")
+            return
+
+        last_assistant_message = assistant_messages[0]["content"]
+
+        try:
+            pyperclip.copy(last_assistant_message)
+            preview = (
+                last_assistant_message[:50] + "..."
+                if len(last_assistant_message) > 50
+                else last_assistant_message
+            )
+            self.io.tool_output(f"Copied last assistant message to clipboard. Preview: {preview}")
+        except pyperclip.PyperclipException as e:
+            self.io.tool_error(f"Failed to copy to clipboard: {str(e)}")
+            self.io.tool_output(
+                "You may need to install xclip or xsel on Linux, or pbcopy on macOS."
+            )
+        except Exception as e:
+            self.io.tool_error(f"An unexpected error occurred while copying to clipboard: {str(e)}")
 
     def cmd_report(self, args):
         "Report a problem by opening a GitHub Issue"

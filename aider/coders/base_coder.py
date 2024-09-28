@@ -181,6 +181,13 @@ class Coder:
             output += ", infinite output"
         lines.append(output)
 
+        if self.edit_format == "architect":
+            output = (
+                f"Editor model: {main_model.editor_model.name} with"
+                f" {main_model.editor_edit_format} edit format"
+            )
+            lines.append(output)
+
         if weak_model is not main_model:
             output = f"Weak model: {weak_model.name}"
             lines.append(output)
@@ -649,7 +656,7 @@ class Coder:
         if self.abs_fnames:
             files_content = self.gpt_prompts.files_content_prefix
             files_content += self.get_files_content()
-            files_reply = "Ok, any changes I propose will be to those files."
+            files_reply = self.gpt_prompts.files_content_assistant_reply
         elif self.get_repo_map() and self.gpt_prompts.files_no_full_files_with_repo_map:
             files_content = self.gpt_prompts.files_no_full_files_with_repo_map
             files_reply = self.gpt_prompts.files_no_full_files_with_repo_map_reply
@@ -1065,13 +1072,15 @@ class Coder:
                 self.warming_pings_left -= 1
                 self.next_cache_warm = time.time() + delay
 
+                kwargs = self.main_model.extra_params or dict()
+                kwargs["max_tokens"] = 1
+
                 try:
                     completion = litellm.completion(
                         model=self.main_model.name,
                         messages=self.cache_warming_chunks.cacheable_messages(),
                         stream=False,
-                        max_tokens=1,
-                        extra_headers=self.main_model.extra_headers,
+                        **kwargs,
                     )
                 except Exception as err:
                     self.io.tool_warning(f"Cache warming error: {str(err)}")
@@ -1103,7 +1112,10 @@ class Coder:
             utils.show_messages(messages, functions=self.functions)
 
         self.multi_response_content = ""
-        self.mdstream = self.io.assistant_output("", self.stream)
+        if self.show_pretty() and self.stream:
+            self.mdstream = self.io.get_assistant_mdstream()
+        else:
+            self.mdstream = None
 
         retry_delay = 0.125
 
@@ -1185,6 +1197,7 @@ class Coder:
             self.cur_messages += [dict(role="assistant", content=content)]
             return
 
+        self.reply_completed()
         edited = self.apply_updates()
 
         self.update_cur_messages()
@@ -1235,6 +1248,9 @@ class Coder:
                 self.reflected_message += "\n\n" + add_rel_files_message
             else:
                 self.reflected_message = add_rel_files_message
+
+    def reply_completed(self):
+        pass
 
     def show_exhausted_error(self):
         output_tokens = 0
@@ -1396,8 +1412,7 @@ class Coder:
                 functions,
                 self.stream,
                 temp,
-                extra_headers=model.extra_headers,
-                max_tokens=model.max_tokens,
+                extra_params=model.extra_params,
             )
             self.chat_completion_call_hashes.append(hash_object.hexdigest())
 
@@ -1460,7 +1475,7 @@ class Coder:
             raise Exception("No data found in LLM response!")
 
         show_resp = self.render_incremental_response(True)
-        self.io.assistant_output(show_resp)
+        self.io.assistant_output(show_resp, pretty=self.show_pretty())
 
         if (
             hasattr(completion.choices[0], "finish_reason")
