@@ -1187,6 +1187,70 @@ class Commands:
         except Exception as e:
             self.io.tool_error(f"An unexpected error occurred while copying to clipboard: {str(e)}")
 
+    def cmd_save(self, args):
+        """save the currently-editable files to a .aider.stack.md file"""
+        editable_workspace_files_file = os.path.join(self.coder.root, ".aider.edit.md")
+        read_only_workspace_files_file = os.path.join(self.coder.root, ".aider.readonly.md")
+
+        try:
+            if any(self.coder.abs_fnames):
+                with open(editable_workspace_files_file, "w") as f:
+                    for fname in self.coder.abs_fnames:
+                        f.write(f"{fname}\n")
+                self.io.tool_output(f"Saved {len(self.coder.abs_fnames)} file names to {editable_workspace_files_file}")
+            if any(self.coder.abs_read_only_fnames):
+
+                with open(read_only_workspace_files_file, "w") as f:
+                    for fname in self.coder.abs_read_only_fnames:
+                        f.write(f"{fname}\n")
+                self.io.tool_output(
+                    f"Saved {len(self.coder.abs_read_only_fnames)} file names to {read_only_workspace_files_file}")
+        except Exception as e:
+            self.io.tool_error(f"Error saving the current chat: {e}")
+            return
+
+    def cmd_load(self, args):
+        """load file list from .aider.edit.md and .aider.readonly.md files"""
+        editable_file_list = os.path.join(self.coder.root, ".aider.edit.md")
+        read_only_file_list = os.path.join(self.coder.root, ".aider.readonly.md")
+        try:
+            class NoFileError(Exception):
+                pass
+
+            try:
+                if not os.path.exists(editable_file_list):
+                    self.io.tool_error("editable workspace file list not found - possibly never got stored.")
+                    raise NoFileError()
+
+                with open(editable_file_list, "r") as f:
+                    for line in f:
+                        fname = line.strip()
+                        # check if this file exists at all:
+                        if not os.path.exists(fname):
+                            self.io.tool_error(f"requested file not found: {fname}")
+                            continue
+                        self.coder.abs_fnames.add(fname)
+            except NoFileError:
+                pass
+
+            try:
+                if not os.path.exists(read_only_file_list):
+                    self.io.tool_error("read-only workspace file list not found - possibly never got stored.")
+                    raise NoFileError()
+                with open(read_only_file_list, "r") as f:
+                    for line in f:
+                        fname = line.strip()
+                        if not os.path.exists(fname):
+                            self.io.tool_error(f"File not found: {fname}")
+                            raise NoFileError()
+                        self.coder.abs_read_only_fnames.add(fname)
+            except NoFileError:
+                pass
+            self.io.tool_output(f"files loaded.")
+        except Exception as e:
+            self.io.tool_error(f"Error loading the file list: {e}")
+            return
+
     def cmd_report(self, args):
         "Report a problem by opening a GitHub Issue"
         from aider.report import report_github_issue

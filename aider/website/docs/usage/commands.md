@@ -24,6 +24,8 @@ cog.out(get_help_md())
 | **/copy** | Copy the last assistant message to the clipboard |
 | **/diff** | Display the diff of changes since the last message |
 | **/drop** | Remove files from the chat session to free up context space |
+| **/save**        | Save the list of currently loaded workspace files for later reuse                       |
+| **/load**        | Load file list from .aider.edit.md and .aider.readonly.md files (symmetric to `/save` ) |
 | **/exit** | Exit the application |
 | **/git** | Run a git command |
 | **/help** | Ask questions about aider |
