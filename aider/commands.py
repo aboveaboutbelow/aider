@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pyperclip
 from PIL import Image, ImageGrab
+from prompt_toolkit.completion import Completion, PathCompleter
+from prompt_toolkit.document import Document
 
 from aider import models, prompts, voice
 from aider.format_settings import format_settings
@@ -162,6 +164,14 @@ class Commands:
 
     def is_command(self, inp):
         return inp[0] in "/!"
+
+    def get_raw_completions(self, cmd):
+        assert cmd.startswith("/")
+        cmd = cmd[1:]
+        cmd = cmd.replace("-", "_")
+
+        raw_completer = getattr(self, f"completions_raw_{cmd}", None)
+        return raw_completer
 
     def get_completions(self, cmd):
         assert cmd.startswith("/")
@@ -569,8 +579,38 @@ class Commands:
             fname = f'"{fname}"'
         return fname
 
-    def completions_read_only(self):
-        return self.completions_add()
+    def completions_raw_read_only(self, document, complete_event):
+        # Get the text before the cursor
+        text = document.text_before_cursor
+
+        # Skip the first word and the space after it
+        after_command = " ".join(text.split()[1:])
+
+        # Create a new Document object with the text after the command
+        new_document = Document(after_command, cursor_position=len(after_command))
+
+        def get_paths():
+            return [self.coder.root] if self.coder.root else None
+
+        path_completer = PathCompleter(
+            get_paths=get_paths,
+            only_directories=False,
+            expanduser=True,
+        )
+
+        # Adjust the start_position to replace all of 'after_command'
+        adjusted_start_position = -len(after_command)
+
+        # Iterate over the completions and modify them
+        for completion in path_completer.get_completions(new_document, complete_event):
+            quoted_text = self.quote_fname(after_command + completion.text)
+            yield Completion(
+                text=quoted_text,
+                start_position=adjusted_start_position,
+                display=completion.display,
+                style=completion.style,
+                selected_style=completion.selected_style,
+            )
 
     def completions_add(self):
         files = set(self.coder.get_all_relative_files())
@@ -668,7 +708,8 @@ class Commands:
                 continue
 
             if abs_file_path in self.coder.abs_fnames:
-                self.io.tool_warning(f"{matched_file} is already in the chat")
+                self.io.tool_error(f"{matched_file} is already in the chat as an editable file")
+                continue
             elif abs_file_path in self.coder.abs_read_only_fnames:
                 if self.coder.repo and self.coder.repo.path_in_repo(matched_file):
                     self.coder.abs_read_only_fnames.remove(abs_file_path)
@@ -736,7 +777,7 @@ class Commands:
                     self.io.tool_output(f"Removed {matched_file} from the chat")
 
     def cmd_git(self, args):
-        "Run a git command"
+        "Run a git command (output excluded from chat)"
         combined_output = None
         try:
             args = "git " + args
@@ -1041,7 +1082,7 @@ class Commands:
         return text
 
     def cmd_paste(self, args):
-        """Paste image/text from the clipboard into the chat.
+        """Paste image/text from the clipboard into the chat.\
         Optionally provide a name for the image."""
         try:
             # Check for image first
@@ -1114,10 +1155,15 @@ class Commands:
                 self.io.tool_error(f"Not a file or directory: {abs_path}")
 
     def _add_read_only_file(self, abs_path, original_name):
-        if abs_path in self.coder.abs_fnames:
-            self.io.tool_error(f"{original_name} is already in the chat as an editable file")
-        elif abs_path in self.coder.abs_read_only_fnames:
+        if abs_path in self.coder.abs_read_only_fnames:
             self.io.tool_error(f"{original_name} is already in the chat as a read-only file")
+            return
+        elif abs_path in self.coder.abs_fnames:
+            self.coder.abs_fnames.remove(abs_path)
+            self.coder.abs_read_only_fnames.add(abs_path)
+            self.io.tool_output(
+                f"Moved {original_name} from editable to read-only files in the chat"
+            )
         else:
             self.coder.abs_read_only_fnames.add(abs_path)
             self.io.tool_output(f"Added {original_name} to read-only files.")

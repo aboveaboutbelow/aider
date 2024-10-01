@@ -95,17 +95,16 @@ class AutoCompleter(Completer):
                 (token[1], f"`{token[1]}`") for token in tokens if token[0] in Token.Name
             )
 
-    def get_command_completions(self, text, words):
-        candidates = []
+    def get_command_completions(self, document, complete_event, text, words):
         if len(words) == 1 and not text[-1].isspace():
             partial = words[0].lower()
             candidates = [cmd for cmd in self.command_names if cmd.startswith(partial)]
-            return candidates
+            for candidate in sorted(candidates):
+                yield Completion(candidate, start_position=-len(words[-1]))
+            return
 
-        if len(words) <= 1:
-            return []
-        if text[-1].isspace():
-            return []
+        if len(words) <= 1 or text[-1].isspace():
+            return
 
         cmd = words[0]
         partial = words[-1].lower()
@@ -114,6 +113,11 @@ class AutoCompleter(Completer):
         if len(matches) == 1:
             cmd = matches[0]
         elif cmd not in matches:
+            return
+
+        raw_completer = self.commands.get_raw_completions(cmd)
+        if raw_completer:
+            yield from raw_completer(document, complete_event)
             return
 
         if cmd not in self.command_completions:
@@ -126,7 +130,8 @@ class AutoCompleter(Completer):
             return
 
         candidates = [word for word in candidates if partial in word.lower()]
-        return candidates
+        for candidate in sorted(candidates):
+            yield Completion(candidate, start_position=-len(words[-1]))
 
     def get_completions(self, document, complete_event):
         self.tokenize()
@@ -141,11 +146,8 @@ class AutoCompleter(Completer):
             return
 
         if text[0] == "/":
-            candidates = self.get_command_completions(text, words)
-            if candidates is not None:
-                for candidate in sorted(candidates):
-                    yield Completion(candidate, start_position=-len(words[-1]))
-                return
+            yield from self.get_command_completions(document, complete_event, text, words)
+            return
 
         candidates = self.words
         candidates.update(set(self.fname_to_rel_fnames))
@@ -193,6 +195,7 @@ class InputOutput:
         llm_history_file=None,
         editingmode=EditingMode.EMACS,
     ):
+        self.never_prompts = set()
         self.editingmode = editingmode
         no_color = os.environ.get("NO_COLOR")
         if no_color is not None and no_color != "":
@@ -488,12 +491,25 @@ class InputOutput:
         self.append_chat_history(hist)
 
     def confirm_ask(
-        self, question, default="y", subject=None, explicit_yes_required=False, group=None
+        self,
+        question,
+        default="y",
+        subject=None,
+        explicit_yes_required=False,
+        group=None,
+        allow_never=False,
     ):
         self.num_user_asks += 1
 
+        question_id = (question, subject)
+
+        if question_id in self.never_prompts:
+            return False
+
         if group and not group.show_group:
             group = None
+        if group:
+            allow_never = True
 
         valid_responses = ["yes", "no"]
         options = " (Y)es/(N)o"
@@ -503,6 +519,10 @@ class InputOutput:
                 valid_responses.append("all")
             options += "/(S)kip all"
             valid_responses.append("skip")
+        if allow_never:
+            options += "/(D)on't ask again"
+            valid_responses.append("don't")
+
         question += options + " [Yes]: "
 
         if subject:
@@ -552,6 +572,12 @@ class InputOutput:
                 self.tool_error(error_message)
 
         res = res.lower()[0]
+
+        if res == "d" and allow_never:
+            self.never_prompts.add(question_id)
+            hist = f"{question.strip()} {res}"
+            self.append_chat_history(hist, linebreak=True, blockquote=True)
+            return False
 
         if explicit_yes_required:
             is_yes = res == "y"

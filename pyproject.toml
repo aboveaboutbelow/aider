@@ -1,6 +1,6 @@
 [project]
 name = "aider-chat"
-version = "0.57.2"
+version = "0.58.2"
 description = "Aider is AI pair programming in your terminal"
 readme = "README.md"
 classifiers = [
