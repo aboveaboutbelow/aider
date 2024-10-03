@@ -282,6 +282,9 @@ cog.outl("```")
 ## Perform a dry run without modifying files (default: False)
 #AIDER_DRY_RUN=false
 
+## Skip the sanity check for the git repository (default: False)
+#AIDER_SKIP_SANITY_CHECK_REPO=false
+
 ########################
 # Fixing and committing:
 
@@ -334,7 +337,7 @@ cog.outl("```")
 #AIDER_APPLY=
 
 ## Always say yes to every confirmation
-#AIDER_YES=
+#AIDER_YES_ALWAYS=
 
 ## Enable verbose output
 #AIDER_VERBOSE=false

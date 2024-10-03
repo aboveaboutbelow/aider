@@ -347,7 +347,12 @@ def main(argv=None, input=None, output=None, force_git_root=None, return_coder=F
 
     conf_fname = Path(".aider.conf.yml")
 
-    default_config_files = [conf_fname.resolve()]  # CWD
+    default_config_files = []
+    try:
+        default_config_files += [conf_fname.resolve()]  # CWD
+    except OSError:
+        pass
+
     if git_root:
         git_conf = Path(git_root) / conf_fname  # git root
         if git_conf not in default_config_files:
@@ -397,15 +402,15 @@ def main(argv=None, input=None, output=None, force_git_root=None, return_coder=F
         args.assistant_output_color = "blue"
         args.code_theme = "default"
 
-    if return_coder and args.yes is None:
-        args.yes = True
+    if return_coder and args.yes_always is None:
+        args.yes_always = True
 
     editing_mode = EditingMode.VI if args.vim else EditingMode.EMACS
 
     def get_io(pretty):
         return InputOutput(
             pretty,
-            args.yes,
+            args.yes_always,
             args.input_history_file,
             args.chat_history_file,
             input=input,
@@ -579,8 +584,9 @@ def main(argv=None, input=None, output=None, force_git_root=None, return_coder=F
         except FileNotFoundError:
             pass
 
-    if not sanity_check_repo(repo, io):
-        return 1
+    if not args.skip_sanity_check_repo:
+        if not sanity_check_repo(repo, io):
+            return 1
 
     commands = Commands(
         io, None, verify_ssl=args.verify_ssl, args=args, parser=parser, verbose=args.verbose
