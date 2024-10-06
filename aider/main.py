@@ -11,7 +11,7 @@ import git
 from dotenv import load_dotenv
 from prompt_toolkit.enums import EditingMode
 
-from aider import __version__, models, utils
+from aider import __version__, models, urls, utils
 from aider.args import get_parser
 from aider.coders import Coder
 from aider.commands import Commands, SwitchCoder
@@ -24,6 +24,23 @@ from aider.report import report_uncaught_exceptions
 from aider.versioncheck import check_version, install_from_main_branch, install_upgrade
 
 from .dump import dump  # noqa: F401
+
+
+def check_config_files_for_yes(config_files):
+    found = False
+    for config_file in config_files:
+        if Path(config_file).exists():
+            try:
+                with open(config_file, "r") as f:
+                    for line in f:
+                        if line.strip().startswith("yes:"):
+                            print("Configuration error detected.")
+                            print(f"The file {config_file} contains a line starting with 'yes:'")
+                            print("Please replace 'yes:' with 'yes-always:' in this file.")
+                            found = True
+            except Exception:
+                pass
+    return found
 
 
 def get_git_root():
@@ -326,7 +343,7 @@ def sanity_check_repo(repo, io):
         io.tool_error("Aider only works with git repos with version number 1 or 2.")
         io.tool_output("You may be able to convert your repo: git update-index --index-version=2")
         io.tool_output("Or run aider --no-git to proceed without using git.")
-        io.tool_output("https://github.com/paul-gauthier/aider/issues/211")
+        io.tool_output(urls.git_index_version)
         return False
 
     io.tool_error("Unable to read git repository, it may be corrupt?")
@@ -361,7 +378,13 @@ def main(argv=None, input=None, output=None, force_git_root=None, return_coder=F
     default_config_files = list(map(str, default_config_files))
 
     parser = get_parser(default_config_files, git_root)
-    args, unknown = parser.parse_known_args(argv)
+    try:
+        args, unknown = parser.parse_known_args(argv)
+    except AttributeError as e:
+        if all(word in str(e) for word in ["bool", "object", "has", "no", "attribute", "strip"]):
+            if check_config_files_for_yes(default_config_files):
+                return 1
+        raise e
 
     if args.verbose:
         print("Config files search order, if no --config:")
@@ -372,6 +395,7 @@ def main(argv=None, input=None, output=None, force_git_root=None, return_coder=F
     default_config_files.reverse()
 
     parser = get_parser(default_config_files, git_root)
+
     args, unknown = parser.parse_known_args(argv)
 
     # Load the .env file specified in the arguments

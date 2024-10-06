@@ -1,6 +1,6 @@
 [project]
 name = "aider-chat"
-version = "0.58.2"
+version = "0.59.2"
 description = "Aider is AI pair programming in your terminal"
 readme = "README.md"
 classifiers = [
@@ -20,7 +20,7 @@ requires-python = ">=3.9,<3.13"
 dynamic = ["dependencies", "optional-dependencies"]
 
 [project.urls]
-Homepage = "https://github.com/paul-gauthier/aider"
+Homepage = "https://github.com/Aider-AI/aider"
 
 [project.scripts]
 aider = "aider.main:main"

@@ -1194,12 +1194,16 @@ class Coder:
         else:
             content = ""
 
+        try:
+            self.reply_completed()
+        except KeyboardInterrupt:
+            interrupted = True
+
         if interrupted:
             content += "\n^C KeyboardInterrupt"
             self.cur_messages += [dict(role="assistant", content=content)]
             return
 
-        self.reply_completed()
         edited = self.apply_updates()
 
         self.update_cur_messages()
