@@ -1,6 +1,10 @@
+# [[[cog
+# from aider.help_pats import exclude_website_pats
+# ]]]
+# [[[end]]]
+
 [project]
 name = "aider-chat"
-version = "0.59.2"
 description = "Aider is AI pair programming in your terminal"
 readme = "README.md"
 classifiers = [
@@ -17,7 +21,7 @@ classifiers = [
     "Topic :: Software Development",
 ]
 requires-python = ">=3.9,<3.13"
-dynamic = ["dependencies", "optional-dependencies"]
+dynamic = ["dependencies", "optional-dependencies", "version"]
 
 [project.urls]
 Homepage = "https://github.com/Aider-AI/aider"
@@ -58,5 +62,12 @@ include = ["aider*", "aider.website"]
 ]
 
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=68", "setuptools_scm[toml]>=8"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+write_to = "aider/__version__.py"
+
+[tool.codespell]
+skip = "*.svg,Gemfile.lock"
+write-changes = true

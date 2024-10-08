@@ -1,3 +1,4 @@
+import traceback
 import base64
 import os
 import time
@@ -336,19 +337,27 @@ class InputOutput:
         filepath = Path(filename)
         backoff_times = [0.1, 0.25, 0.5, 1.0, 2.0]
         
+        last_exception = None
         for backoff in backoff_times:
             try:
                 with open(filepath, "w", encoding=self.encoding) as f:
                     f.write(content)
                 return
             except OSError as e:
+                last_exception = e
                 if e.errno in (errno.EACCES, errno.EAGAIN, errno.EWOULDBLOCK) or "Permission denied" in str(e):
                     time.sleep(backoff)
                 else:
+                    print(f"Unexpected OSError: {e}")
                     raise
         
-        self.tool_error(f"Failed to write to {filepath} after {len(backoff_times)} attempts.")
-        raise
+        if last_exception:
+            print(f"Failed to write to {filepath} after {len(backoff_times)} attempts. Last error: {last_exception}")
+            raise last_exception
+        else:
+            error_msg = f"Failed to write to {filepath} after {len(backoff_times)} attempts without a specific error."
+            print(error_msg)
+            raise RuntimeError(error_msg)
 
     def rule(self):
         if self.pretty:

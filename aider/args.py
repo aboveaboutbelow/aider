@@ -6,7 +6,7 @@ import sys
 
 import configargparse
 
-from aider.__version__ import __version__
+from aider import __version__
 from aider.args_formatter import (
     DotEnvFormatter,
     MarkdownHelpFormatter,
