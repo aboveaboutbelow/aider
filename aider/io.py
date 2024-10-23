@@ -380,7 +380,24 @@ class InputOutput:
         rel_fnames = list(rel_fnames)
         show = ""
         if rel_fnames:
-            show = " ".join(os.path.basename(fname) for fname in rel_fnames) + "\n"
+            # Compute the read-only file names relative to the root
+            rel_read_only_fnames = [
+                os.path.relpath(fname, root) for fname in (abs_read_only_fnames or [])
+            ]
+            
+            # Prepare a list to hold the formatted file names
+            formatted_files = []
+            for fname in rel_fnames:
+                # Determine if the file is read-only
+                is_read_only = os.path.relpath(fname, root) in rel_read_only_fnames
+                # Use the absolute path as per your change
+                display_name = fname  # Absolute path
+                if is_read_only:
+                    # Indicate read-only status, e.g., by prefixing with [RO]
+                    display_name = "[RO] " + display_name
+                formatted_files.append(display_name)
+            # Join the formatted file names into a single string
+            show = " ".join(formatted_files) + "\n"
         if edit_format:
             show += edit_format
         show += "> "
@@ -717,3 +734,16 @@ class InputOutput:
                     " Permission denied."
                 )
                 self.chat_history_file = None  # Disable further attempts to write
+
+    def format_files_for_input(self, rel_fnames, rel_read_only_fnames):
+        read_only_files = []
+        for full_path in rel_read_only_fnames or []:
+            read_only_files.append(f"{full_path} (read only)")
+
+        editable_files = []
+        for full_path in rel_fnames:
+            if full_path in rel_read_only_fnames:
+                continue
+            editable_files.append(f"{full_path}")
+
+        return "\n".join(read_only_files + editable_files) + "\n"
