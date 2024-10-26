@@ -394,8 +394,13 @@ class InputOutput:
             # Prepare a list to hold the formatted file names
             formatted_files = []
             for fname in rel_fnames:
-                # Determine if the file is read-only
-                is_read_only = os.path.relpath(fname, root) in rel_read_only_fnames
+                # Determine if the file is read-only by comparing full paths when needed
+                try:
+                    rel_fname = os.path.relpath(fname, root)
+                    is_read_only = rel_fname in rel_read_only_fnames
+                except ValueError:
+                    # On Windows, handle cross-drive comparisons
+                    is_read_only = fname in rel_read_only_fnames
                 # Use the absolute path as per your change
                 display_name = fname  # Absolute path
                 if is_read_only:
