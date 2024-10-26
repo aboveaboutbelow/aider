@@ -382,9 +382,14 @@ class InputOutput:
         show = ""
         if rel_fnames:
             # Compute the read-only file names relative to the root
-            rel_read_only_fnames = [
-                os.path.relpath(fname, root) for fname in (abs_read_only_fnames or [])
-            ]
+            rel_read_only_fnames = []
+            for fname in (abs_read_only_fnames or []):
+                try:
+                    rel_path = os.path.relpath(fname, root)
+                    rel_read_only_fnames.append(rel_path)
+                except ValueError:
+                    # On Windows, keep the full path when files are on different drives
+                    rel_read_only_fnames.append(fname)
             
             # Prepare a list to hold the formatted file names
             formatted_files = []
