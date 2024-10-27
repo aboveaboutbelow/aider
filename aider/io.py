@@ -381,34 +381,17 @@ class InputOutput:
         rel_fnames = list(rel_fnames)
         show = ""
         if rel_fnames:
-            # Compute the read-only file names relative to the root
+            # Convert absolute read-only paths to just filenames
             rel_read_only_fnames = []
             for fname in (abs_read_only_fnames or []):
-                try:
-                    rel_path = os.path.relpath(fname, root)
-                    rel_read_only_fnames.append(rel_path)
-                except ValueError:
-                    # On Windows, keep the full path when files are on different drives
-                    rel_read_only_fnames.append(fname)
+                basename = os.path.basename(fname)
+                rel_read_only_fnames.append(basename)
+                
+            # Convert all paths to just filenames
+            rel_fnames = [os.path.basename(f) for f in rel_fnames]
             
-            # Prepare a list to hold the formatted file names
-            formatted_files = []
-            for fname in rel_fnames:
-                # Determine if the file is read-only by comparing full paths when needed
-                try:
-                    rel_fname = os.path.relpath(fname, root)
-                    is_read_only = rel_fname in rel_read_only_fnames
-                except ValueError:
-                    # On Windows, handle cross-drive comparisons
-                    is_read_only = fname in rel_read_only_fnames
-                # Use the absolute path as per your change
-                display_name = fname  # Absolute path
-                if is_read_only:
-                    # Indicate read-only status, e.g., by prefixing with [RO]
-                    display_name = "[RO] " + display_name
-                formatted_files.append(display_name)
-            # Join the formatted file names into a single string
-            show = " ".join(formatted_files) + "\n"
+            show = self.format_files_for_input(rel_fnames, rel_read_only_fnames)
+
         if edit_format:
             show += edit_format
         show += "> "
@@ -758,3 +741,10 @@ class InputOutput:
             editable_files.append(f"{full_path}")
 
         return "\n".join(read_only_files + editable_files) + "\n"
+
+
+def get_rel_fname(fname, root):
+    try:
+        return os.path.relpath(fname, root)
+    except ValueError:
+        return fname
