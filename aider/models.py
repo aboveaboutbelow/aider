@@ -13,7 +13,6 @@ import json5
 import yaml
 from PIL import Image
 
-from aider import urls
 from aider.dump import dump  # noqa: F401
 from aider.llm import litellm
 
@@ -778,6 +777,11 @@ class Model(ModelSettings):
             self.examples_as_sys_msg = True
             self.reminder = "user"
 
+        if model.startswith("o1-") or "/o1-" in model:
+            self.use_system_prompt = False
+            self.use_temperature = False
+            self.streaming = False
+
         # use the defaults
         if self.edit_format == "diff":
             self.use_repo_map = True
@@ -1036,9 +1040,6 @@ def sanity_check_model(io, model):
             io.tool_output("Did you mean one of these?")
             for match in possible_matches:
                 io.tool_output(f"- {match}")
-
-    if show:
-        io.tool_output(f"For more info, see: {urls.model_warnings}")
 
     return show
 

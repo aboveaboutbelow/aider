@@ -1247,6 +1247,62 @@ class Commands:
         output = f"{announcements}\n{settings}"
         self.io.tool_output(output)
 
+    def completions_raw_load(self, document, complete_event):
+        return self.completions_raw_read_only(document, complete_event)
+
+    def cmd_load(self, args):
+        "Load and execute commands from a file"
+        if not args.strip():
+            self.io.tool_error("Please provide a filename containing commands to load.")
+            return
+
+        try:
+            with open(args.strip(), "r", encoding=self.io.encoding, errors="replace") as f:
+                commands = f.readlines()
+        except FileNotFoundError:
+            self.io.tool_error(f"File not found: {args}")
+            return
+        except Exception as e:
+            self.io.tool_error(f"Error reading file: {e}")
+            return
+
+        for cmd in commands:
+            cmd = cmd.strip()
+            if not cmd or cmd.startswith("#"):
+                continue
+
+            self.io.tool_output(f"\nExecuting: {cmd}")
+            self.run(cmd)
+
+    def completions_raw_save(self, document, complete_event):
+        return self.completions_raw_read_only(document, complete_event)
+
+    def cmd_save(self, args):
+        "Save commands to a file that can reconstruct the current chat session's files"
+        if not args.strip():
+            self.io.tool_error("Please provide a filename to save the commands to.")
+            return
+
+        try:
+            with open(args.strip(), "w", encoding=self.io.encoding) as f:
+                # Write commands to add editable files
+                for fname in sorted(self.coder.abs_fnames):
+                    rel_fname = self.coder.get_rel_fname(fname)
+                    f.write(f"/add       {rel_fname}\n")
+
+                # Write commands to add read-only files
+                for fname in sorted(self.coder.abs_read_only_fnames):
+                    # Use absolute path for files outside repo root, relative path for files inside
+                    if Path(fname).is_relative_to(self.coder.root):
+                        rel_fname = self.coder.get_rel_fname(fname)
+                        f.write(f"/read-only {rel_fname}\n")
+                    else:
+                        f.write(f"/read-only {fname}\n")
+
+            self.io.tool_output(f"Saved commands to {args.strip()}")
+        except Exception as e:
+            self.io.tool_error(f"Error saving commands to file: {e}")
+
     def cmd_copy(self, args):
         "Copy the last assistant message to the clipboard"
         all_messages = self.coder.done_messages + self.coder.cur_messages

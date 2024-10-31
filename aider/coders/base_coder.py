@@ -1825,8 +1825,10 @@ class Coder:
         edited = set()
         try:
             edits = self.get_edits()
+            edits = self.apply_edits_dry_run(edits)
             edits = self.prepare_to_edit(edits)
             edited = set(edit[0] for edit in edits)
+
             self.apply_edits(edits)
         except ValueError as err:
             self.num_malformed_responses += 1
@@ -1953,6 +1955,9 @@ class Coder:
 
     def apply_edits(self, edits):
         return
+
+    def apply_edits_dry_run(self, edits):
+        return edits
 
     def run_shell_commands(self):
         if not self.suggest_shell_commands:
