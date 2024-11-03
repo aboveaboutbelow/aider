@@ -223,6 +223,7 @@ class Commands:
 
     def run(self, inp):
         if inp.startswith("!"):
+            self.coder.event("command_run")
             return self.do_run("run", inp[1:])
 
         res = self.matching_commands(inp)
@@ -230,9 +231,13 @@ class Commands:
             return
         matching_commands, first_word, rest_inp = res
         if len(matching_commands) == 1:
-            return self.do_run(matching_commands[0][1:], rest_inp)
+            command = matching_commands[0][1:]
+            self.coder.event(f"command_{command}")
+            return self.do_run(command, rest_inp)
         elif first_word in matching_commands:
-            return self.do_run(first_word[1:], rest_inp)
+            command = first_word[1:]
+            self.coder.event(f"command_{command}")
+            return self.do_run(command, rest_inp)
         elif len(matching_commands) > 1:
             self.io.tool_error(f"Ambiguous command: {', '.join(matching_commands)}")
         else:
@@ -964,6 +969,7 @@ class Commands:
             self.basic_help()
             return
 
+        self.coder.event("interactive help")
         from aider.coders import Coder
 
         if not self.help:
@@ -1194,6 +1200,13 @@ class Commands:
                 self.io.tool_error(f"Not a file or directory: {abs_path}")
 
     def _add_read_only_file(self, abs_path, original_name):
+        if is_image_file(original_name) and not self.coder.main_model.info.get("supports_vision"):
+            self.io.tool_error(
+                f"Cannot add image file {original_name} as the"
+                f" {self.coder.main_model.name} does not support images."
+            )
+            return
+
         if abs_path in self.coder.abs_read_only_fnames:
             self.io.tool_error(f"{original_name} is already in the chat as a read-only file")
             return
@@ -1285,6 +1298,7 @@ class Commands:
 
         try:
             with open(args.strip(), "w", encoding=self.io.encoding) as f:
+                f.write("/drop\n")
                 # Write commands to add editable files
                 for fname in sorted(self.coder.abs_fnames):
                     rel_fname = self.coder.get_rel_fname(fname)

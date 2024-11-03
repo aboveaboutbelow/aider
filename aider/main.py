@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 from prompt_toolkit.enums import EditingMode
 
 from aider import __version__, models, urls, utils
+from aider.analytics import Analytics
 from aider.args import get_parser
 from aider.coders import Coder
 from aider.commands import Commands, SwitchCoder
@@ -428,6 +429,11 @@ def main(argv=None, input=None, output=None, force_git_root=None, return_coder=F
     # Parse again to include any arguments that might have been defined in .env
     args = parser.parse_args(argv)
 
+    if args.analytics_disable:
+        analytics = Analytics(permanently_disable=True)
+        print("Analytics have been permanently disabled.")
+        return
+
     if not args.verify_ssl:
         import httpx
 
@@ -489,9 +495,35 @@ def main(argv=None, input=None, output=None, force_git_root=None, return_coder=F
         io = get_io(False)
         io.tool_warning("Terminal does not support pretty output (UnicodeDecodeError)")
 
+    analytics = Analytics(logfile=args.analytics_log, permanently_disable=args.analytics_disable)
+    if args.analytics:
+        if analytics.need_to_ask():
+            io.tool_output(
+                "Aider respects your privacy and never collects your code, chat messages, keys or"
+                " personal info."
+            )
+            io.tool_output(f"For more info: {urls.analytics}")
+            disable = not io.confirm_ask(
+                "Allow collection of anonymous analytics to help improve aider?"
+            )
+
+            analytics.asked_opt_in = True
+            if disable:
+                analytics.disable(permanently=True)
+                io.tool_output("Analytics have been permanently disabled.")
+
+            analytics.save_data()
+            io.tool_output()
+
+        # This is a no-op if the user has opted out
+        analytics.enable()
+
+    analytics.event("launched")
+
     if args.gui and not return_coder:
         if not check_streamlit_install(io):
             return
+        analytics.event("gui session")
         launch_gui(argv)
         return
 
@@ -606,6 +638,7 @@ def main(argv=None, input=None, output=None, force_git_root=None, return_coder=F
     if args.show_model_warnings:
         problem = models.sanity_check_models(io, main_model)
         if problem:
+            analytics.event("model warning", main_model=main_model)
             io.tool_output("You can skip this check with --no-show-model-warnings")
 
             try:
@@ -682,6 +715,7 @@ def main(argv=None, input=None, output=None, force_git_root=None, return_coder=F
             test_cmd=args.test_cmd,
             commands=commands,
             summarizer=summarizer,
+            analytics=analytics,
             map_refresh=args.map_refresh,
             cache_prompts=args.cache_prompts,
             map_mul_no_files=args.map_multiplier_no_files,
@@ -782,6 +816,8 @@ def main(argv=None, input=None, output=None, force_git_root=None, return_coder=F
 
     if args.exit:
         return
+
+    analytics.event("cli session", main_model=main_model, edit_format=main_model.edit_format)
 
     while True:
         try:

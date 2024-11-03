@@ -321,6 +321,18 @@ cog.outl("```")
 ## Run tests and fix problems found
 #test: false
 
+############
+# Analytics:
+
+## Enable/disable analytics for one session (default: False)
+#analytics: false
+
+## Specify a file to log analytics events
+#analytics-log: xxx
+
+## Permanently disable analytics
+#analytics-disable: false
+
 #################
 # Other Settings:
 
@@ -394,7 +406,7 @@ cog.outl("```")
 ## Specify the config file (default: search for .aider.conf.yml in git root, cwd or home directory)
 #config: xxx
 
-## Run aider in your browser
+## Run aider in your browser (default: False)
 #gui: false
 
 ## Enable/disable suggesting shell commands (default: True)
