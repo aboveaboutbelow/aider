@@ -1,9 +1,12 @@
 import glob
+import logging
 import os
 import re
 import subprocess
 import sys
 import tempfile
+
+logger = logging.getLogger(__name__)
 from collections import OrderedDict
 from os.path import expanduser
 from pathlib import Path
@@ -222,6 +225,7 @@ class Commands:
         return matching_commands, first_word, rest_inp
 
     def run(self, inp):
+        logger.debug("Running command: %s", inp)
         if inp.startswith("!"):
             self.coder.event("command_run")
             return self.do_run("run", inp[1:])
@@ -685,7 +689,7 @@ class Commands:
 
     def cmd_add(self, args):
         "Add files to the chat so aider can edit them or review them in detail"
-
+        logger.info("Adding files to chat: %s", args)
         all_matched_files = set()
 
         filenames = parse_quoted_filenames(args)

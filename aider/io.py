@@ -1,7 +1,10 @@
 import traceback
 import base64
+import logging
 import os
 import time
+
+logger = logging.getLogger(__name__)
 import errno
 from collections import defaultdict
 from dataclasses import dataclass
@@ -315,6 +318,7 @@ class InputOutput:
             return
 
     def read_text(self, filename):
+        logger.debug("Reading from file: %s", filename)
         if is_image_file(filename):
             return self.read_image(filename)
 
@@ -338,6 +342,7 @@ class InputOutput:
     def write_text(self, filename, content):
         if self.dry_run:
             return
+        logger.info("Writing to file: %s", filename)
         filepath = Path(filename)
         backoff_times = [0.1, 0.25, 0.5, 1.0, 2.0]
         
@@ -662,6 +667,7 @@ class InputOutput:
 
     def tool_error(self, message="", strip=True):
         self.num_error_outputs += 1
+        logger.error(message)
         self._tool_message(message, strip, self.tool_error_color)
 
     def tool_warning(self, message="", strip=True):
