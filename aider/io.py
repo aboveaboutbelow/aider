@@ -4,8 +4,8 @@ import logging
 import os
 import time
 
-logger = logging.getLogger(__name__)
 import errno
+import webbrowser
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
@@ -33,6 +33,7 @@ from aider.mdstream import MarkdownStream
 from .dump import dump  # noqa: F401
 from .utils import is_image_file
 
+logger = logging.getLogger(__name__)
 
 @dataclass
 class ConfirmGroup:
@@ -517,6 +518,15 @@ class InputOutput:
     def ai_output(self, content):
         hist = "\n" + content.strip() + "\n\n"
         self.append_chat_history(hist)
+
+    def offer_url(self, url, prompt="Open URL for more info?"):
+        """Offer to open a URL in the browser, returns True if opened."""
+        if url in self.never_prompts:
+            return False
+        if self.confirm_ask(prompt, subject=url, allow_never=True):
+            webbrowser.open(url)
+            return True
+        return False
 
     def confirm_ask(
         self,
