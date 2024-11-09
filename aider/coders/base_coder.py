@@ -820,7 +820,7 @@ class Coder:
                     "Add URL to the chat?", subject=url, group=group, allow_never=True
                 ):
                     inp += "\n\n"
-                    inp += self.commands.cmd_web(url)
+                    inp += self.commands.cmd_web(url, return_content=True)
                     added_urls.append(url)
                 else:
                     self.rejected_urls.add(url)
@@ -1177,7 +1177,7 @@ class Coder:
 
                     err_msg = str(err)
                     if ex_info.description:
-                        self.io.tool_output(err_msg)
+                        self.io.tool_warning(err_msg)
                         self.io.tool_error(ex_info.description)
                     else:
                         self.io.tool_error(err_msg)
