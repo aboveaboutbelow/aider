@@ -1,10 +1,6 @@
-import traceback
 import base64
-import logging
 import os
 import time
-
-import errno
 import webbrowser
 from collections import defaultdict
 from dataclasses import dataclass
@@ -33,7 +29,6 @@ from aider.mdstream import MarkdownStream
 from .dump import dump  # noqa: F401
 from .utils import is_image_file
 
-logger = logging.getLogger(__name__)
 
 @dataclass
 class ConfirmGroup:
@@ -319,7 +314,6 @@ class InputOutput:
             return
 
     def read_text(self, filename):
-        logger.debug("Reading from file: %s", filename)
         if is_image_file(filename):
             return self.read_image(filename)
 
@@ -340,34 +334,36 @@ class InputOutput:
             self.tool_error("Use --encoding to set the unicode encoding.")
             return
 
-    def write_text(self, filename, content):
+    def write_text(self, filename, content, max_retries=5, initial_delay=0.1):
+        """
+        Writes content to a file, retrying with progressive backoff if the file is locked.
+
+        :param filename: Path to the file to write.
+        :param content: Content to write to the file.
+        :param max_retries: Maximum number of retries if a file lock is encountered.
+        :param initial_delay: Initial delay (in seconds) before the first retry.
+        """
         if self.dry_run:
             return
-        logger.info("Writing to file: %s", filename)
-        filepath = Path(filename)
-        backoff_times = [0.1, 0.25, 0.5, 1.0, 2.0]
-        
-        last_exception = None
-        for backoff in backoff_times:
+
+        delay = initial_delay
+        for attempt in range(max_retries):
             try:
-                with open(filepath, "w", encoding=self.encoding) as f:
+                with open(str(filename), "w", encoding=self.encoding) as f:
                     f.write(content)
-                return
-            except OSError as e:
-                last_exception = e
-                if e.errno in (errno.EACCES, errno.EAGAIN, errno.EWOULDBLOCK) or "Permission denied" in str(e):
-                    time.sleep(backoff)
+                return  # Successfully wrote the file
+            except PermissionError as err:
+                if attempt < max_retries - 1:
+                    time.sleep(delay)
+                    delay *= 2  # Exponential backoff
                 else:
-                    print(f"Unexpected OSError: {e}")
+                    self.tool_error(
+                        f"Unable to write file {filename} after {max_retries} attempts: {err}"
+                    )
                     raise
-        
-        if last_exception:
-            print(f"Failed to write to {filepath} after {len(backoff_times)} attempts. Last error: {last_exception}")
-            raise last_exception
-        else:
-            error_msg = f"Failed to write to {filepath} after {len(backoff_times)} attempts without a specific error."
-            print(error_msg)
-            raise RuntimeError(error_msg)
+            except OSError as err:
+                self.tool_error(f"Unable to write file {filename}: {err}")
+                raise
 
     def rule(self):
         if self.pretty:
@@ -390,17 +386,10 @@ class InputOutput:
         rel_fnames = list(rel_fnames)
         show = ""
         if rel_fnames:
-            # Convert absolute read-only paths to just filenames
-            rel_read_only_fnames = []
-            for fname in (abs_read_only_fnames or []):
-                basename = os.path.basename(fname)
-                rel_read_only_fnames.append(basename)
-                
-            # Convert all paths to just filenames
-            rel_fnames = [os.path.basename(f) for f in rel_fnames]
-            
+            rel_read_only_fnames = [
+                get_rel_fname(fname, root) for fname in (abs_read_only_fnames or [])
+            ]
             show = self.format_files_for_input(rel_fnames, rel_read_only_fnames)
-
         if edit_format:
             show += edit_format
         show += "> "
@@ -442,7 +431,7 @@ class InputOutput:
                         show,
                         completer=completer_instance,
                         reserve_space_for_menu=4,
-                        complete_style=CompleteStyle.COLUMN,
+                        complete_style=CompleteStyle.MULTI_COLUMN,
                         style=style,
                         key_bindings=kb,
                     )
@@ -677,7 +666,6 @@ class InputOutput:
 
     def tool_error(self, message="", strip=True):
         self.num_error_outputs += 1
-        logger.error(message)
         self._tool_message(message, strip, self.tool_error_color)
 
     def tool_warning(self, message="", strip=True):
