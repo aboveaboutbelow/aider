@@ -12,7 +12,7 @@ description: Release notes and stats on aider writing its own code.
 
 The above 
 [stats are based on the git commit history](/docs/faq.html#how-are-the-aider-wrote-xx-of-code-stats-computed)
-in the aider repo.
+of the aider repo.
 
 <!--[[[cog
 # This page is a copy of HISTORY.md, adding the front matter above.
@@ -29,6 +29,8 @@ cog.out(text)
 - Modified model metadata file loading to allow override of resource file.
 - Allow recursive loading of dirs using `--read`.
 - Updated dependency versions to pick up litellm fix for ollama models.
+- Added exponential backoff retry when writing files to handle editor file locks.
+- Updated Qwen 2.5 Coder 32B model configuration.
 
 ### Aider v0.63.1
 
