@@ -506,8 +506,8 @@ def main(argv=None, input=None, output=None, force_git_root=None, return_coder=F
         io.tool_warning("Terminal does not support pretty output (UnicodeDecodeError)")
 
     analytics = Analytics(logfile=args.analytics_log, permanently_disable=args.analytics_disable)
-    if args.analytics:
-        if analytics.need_to_ask():
+    if args.analytics is not False:
+        if analytics.need_to_ask(args.analytics):
             io.tool_output(
                 "Aider respects your privacy and never collects your code, chat messages, keys or"
                 " personal info."
@@ -689,7 +689,13 @@ def main(argv=None, input=None, output=None, force_git_root=None, return_coder=F
             return 1
 
     commands = Commands(
-        io, None, verify_ssl=args.verify_ssl, args=args, parser=parser, verbose=args.verbose
+        io,
+        None,
+        verify_ssl=args.verify_ssl,
+        args=args,
+        parser=parser,
+        verbose=args.verbose,
+        editor=args.editor,
     )
 
     summarizer = ChatSummary(
@@ -799,17 +805,17 @@ def main(argv=None, input=None, output=None, force_git_root=None, return_coder=F
 
     io.tool_output('Use /help <question> for help, run "aider --help" to see cmd line args')
 
-    show = False
     if args.show_release_notes is True:
-        show = True
-    elif args.show_release_notes is None and is_first_run:
-        io.tool_output()
-        show = io.confirm_ask("Would you like to see what's new in this version?")
-
-    if show:
         io.tool_output(f"Opening release notes: {urls.release_notes}")
         io.tool_output()
         webbrowser.open(urls.release_notes)
+    elif args.show_release_notes is None and is_first_run:
+        io.tool_output()
+        io.offer_url(
+            urls.release_notes,
+            "Would you like to see what's new in this version?",
+            allow_never=False,
+        )
 
     if git_root and Path.cwd().resolve() != Path(git_root).resolve():
         io.tool_warning(
