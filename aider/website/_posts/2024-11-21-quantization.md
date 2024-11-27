@@ -1,6 +1,6 @@
 ---
-title: Quantization matters
-excerpt: Open source LLMs are becoming very powerful, but pay attention to how you (or your provider) is quantizing the model. It can affect code editing skill.
+title: Details matter with open source models
+excerpt: Open source LLMs are becoming very powerful, but pay attention to how you (or your provider) are serving the model. It can affect code editing skill.
 highlight_image: /assets/quantization.jpg
 draft: false
 nav_exclude: true
@@ -9,18 +9,20 @@ nav_exclude: true
 <p class="post-date">{{ page.date | date: "%B %d, %Y" }}</p>
 {% endif %}
 
-# Quantization matters
+# Details matter with open source models
 {: .no_toc }
 
 Open source models like Qwen 2.5 32B Instruct are performing very well on
 aider's code editing benchmark, rivaling closed source frontier models.
-But pay attention to how your model is being quantized, as it
-can impact code editing skill.
-Heavily quantized models are often used by cloud API providers
-and local model servers like Ollama or MLX.
+
+But pay attention to how your model is being served and quantized, 
+as it can impact code editing skill.
+Open source models are often available at a variety of quantizations,
+and can be served with different token limits.
+These details matter when working with code.
 
 The graph and table below compares different versions of the Qwen 2.5 Coder 32B Instruct model,
-served both locally and from cloud providers.
+served both locally and from a variety of cloud providers.
 
 - The [HuggingFace BF16 weights](https://huggingface.co/Qwen/Qwen2.5-Coder-32B-Instruct) served via [glhf.chat](https://glhf.chat).
 - [4bit and 8bit quants for mlx](https://t.co/cwX3DYX35D).
@@ -28,8 +30,34 @@ served both locally and from cloud providers.
 - Results from individual providers served via OpenRouter and directly to their own APIs.
 - Ollama locally serving different quantizations from the [Ollama model library](https://ollama.com/library/qwen2.5-coder:32b-instruct-q4_K_M).
 
-The best version of the model rivals GPT-4o, while the worst performer
-is more like the older GPT-4 Turbo.
+This benchmarking effort highlighted a number of pitfalls and details which
+can have a significant impact on the model's ability to correctly edit code:
+
+- **Quantization** -- Open source models are often available at dozens of different quantizations.
+Most seem to only modestly decrease code editing skill, but stronger quantizations
+do have a real impact.
+- **Context window** -- Cloud providers can decide how large a context window to accept,
+and they often choose differently. Ollama defaults to a tiny 2k context window,
+and silently discards data that exceeds it. Such a small window has
+catastrophic effects on performance.
+- **Output token limits** -- Open source models are often served with wildly
+differing output token limits. This has a direct impact on how much code the
+model can write or edit in a response.
+- **Buggy cloud providers** -- Between Qwen 2.5 Coder 32B Instruct
+and DeepSeek V2.5, there were
+multiple cloud providers with broken or buggy API endpoints.
+They seemed
+to be returning result different from expected based on the advertised
+quantization and context sizes.
+The harm caused to the code editing benchmark varied from serious
+to catastrophic.
+
+The best versions of the model rival GPT-4o, while the worst performing
+quantization is more like the older GPT-4 Turbo.
+Even an excellent fp16 quantization falls to GPT-3.5 Turbo levels of performance
+if run with Ollama's default 2k context window.
+
+
 
 ### Sections
 {: .no_toc }
@@ -114,9 +142,10 @@ a request that exceeds the context window.
 Instead, it just silently truncates the request by discarding the "oldest" messages
 in the chat to make it fit within the context window.
 
-All of the Ollama results above were collected with at least an 8k context window, which
-is large enough to attempt all the coding problems in the benchmark.
-Aider sets Ollama's context window to 8k by default.
+Except for the single 2k context result,
+all of the Ollama results above were collected with at least an 8k context window.
+An 8k window is large enough to attempt all the coding problems in the benchmark.
+Aider sets Ollama's context window to 8k by default, starting in aider v0.65.0.
 
 You can change the Ollama server's context window with a 
 [`.aider.model.settings.yml` file](https://aider.chat/docs/config/adv-model-settings.html#model-settings)

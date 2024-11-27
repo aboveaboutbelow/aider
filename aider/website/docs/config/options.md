@@ -32,9 +32,9 @@ usage: aider [-h] [--openai-api-key] [--anthropic-api-key] [--model]
              [--openai-api-type] [--openai-api-version]
              [--openai-api-deployment-id] [--openai-organization-id]
              [--model-settings-file] [--model-metadata-file]
-             [--verify-ssl | --no-verify-ssl] [--edit-format]
-             [--architect] [--weak-model] [--editor-model]
-             [--editor-edit-format]
+             [--alias] [--verify-ssl | --no-verify-ssl]
+             [--edit-format] [--architect] [--weak-model]
+             [--editor-model] [--editor-edit-format]
              [--show-model-warnings | --no-show-model-warnings]
              [--max-chat-history-tokens] [--env-file]
              [--cache-prompts | --no-cache-prompts]
@@ -73,7 +73,8 @@ usage: aider [-h] [--openai-api-key] [--anthropic-api-key] [--model]
              [--message-file] [--load] [--encoding] [-c]
              [--gui | --no-gui | --browser | --no-browser]
              [--suggest-shell-commands | --no-suggest-shell-commands]
-             [--fancy-input | --no-fancy-input] [--editor]
+             [--fancy-input | --no-fancy-input]
+             [--detect-urls | --no-detect-urls] [--editor]
              [--voice-format] [--voice-language]
 
 ```
@@ -190,6 +191,10 @@ Environment variable: `AIDER_MODEL_SETTINGS_FILE`
 Specify a file with context window and costs for unknown models  
 Default: .aider.model.metadata.json  
 Environment variable: `AIDER_MODEL_METADATA_FILE`  
+
+### `--alias ALIAS:MODEL`
+Add a model alias (can be used multiple times)  
+Environment variable: `AIDER_ALIAS`  
 
 ### `--verify-ssl`
 Verify the SSL cert when connecting to models (default: True)  
@@ -672,6 +677,14 @@ Environment variable: `AIDER_FANCY_INPUT`
 Aliases:
   - `--fancy-input`
   - `--no-fancy-input`
+
+### `--detect-urls`
+Enable/disable detection and offering to add URLs to chat (default: True)  
+Default: True  
+Environment variable: `AIDER_DETECT_URLS`  
+Aliases:
+  - `--detect-urls`
+  - `--no-detect-urls`
 
 ### `--editor VALUE`
 Specify which editor to use for the /editor command  

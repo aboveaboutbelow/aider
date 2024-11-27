@@ -132,6 +132,9 @@ cog.outl("```")
 ## Specify a file with context window and costs for unknown models
 #AIDER_MODEL_METADATA_FILE=.aider.model.metadata.json
 
+## Add a model alias (can be used multiple times)
+#AIDER_ALIAS=
+
 ## Verify the SSL cert when connecting to models (default: True)
 #AIDER_VERIFY_SSL=true
 
@@ -392,6 +395,9 @@ cog.outl("```")
 
 ## Enable/disable fancy input with history and completion (default: True)
 #AIDER_FANCY_INPUT=true
+
+## Enable/disable detection and offering to add URLs to chat (default: True)
+#AIDER_DETECT_URLS=true
 
 ## Specify which editor to use for the /editor command
 #AIDER_EDITOR=

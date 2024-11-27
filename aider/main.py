@@ -18,6 +18,7 @@ from aider import __version__, models, urls, utils
 from aider.analytics import Analytics
 from aider.args import get_parser
 from aider.coders import Coder
+from aider.coders.base_coder import UnknownEditFormat
 from aider.commands import Commands, SwitchCoder
 from aider.format_settings import format_settings, scrub_sensitive_info
 from aider.history import ChatSummary
@@ -156,13 +157,17 @@ def check_gitignore(git_root, io, ask=True):
 
     gitignore_file = Path(git_root) / ".gitignore"
     if gitignore_file.exists():
-        content = io.read_text(gitignore_file)
-        if content is None:
+        try:
+            content = io.read_text(gitignore_file)
+            if content is None:
+                return
+            existing_lines = content.splitlines()
+            for pat in patterns:
+                if pat not in existing_lines:
+                    patterns_to_add.append(pat)
+        except OSError as e:
+            io.tool_error(f"Error when trying to read {gitignore_file}: {e}")
             return
-        existing_lines = content.splitlines()
-        for pat in patterns:
-            if pat not in existing_lines:
-                patterns_to_add.append(pat)
     else:
         content = ""
         patterns_to_add = patterns
@@ -176,9 +181,17 @@ def check_gitignore(git_root, io, ask=True):
     if content and not content.endswith("\n"):
         content += "\n"
     content += "\n".join(patterns_to_add) + "\n"
-    io.write_text(gitignore_file, content)
 
-    io.tool_output(f"Added {', '.join(patterns_to_add)} to .gitignore")
+    try:
+        io.write_text(gitignore_file, content)
+        io.tool_output(f"Added {', '.join(patterns_to_add)} to .gitignore")
+    except OSError as e:
+        io.tool_error(f"Error when trying to write to {gitignore_file}: {e}")
+        io.tool_output(
+            "Try running with appropriate permissions or manually add these patterns to .gitignore:"
+        )
+        for pattern in patterns_to_add:
+            io.tool_output(f"  {pattern}")
 
 
 def check_streamlit_install(io):
@@ -635,6 +648,18 @@ def main(argv=None, input=None, output=None, force_git_root=None, return_coder=F
     register_models(git_root, args.model_settings_file, io, verbose=args.verbose)
     register_litellm_models(git_root, args.model_metadata_file, io, verbose=args.verbose)
 
+    # Process any command line aliases
+    if args.alias:
+        for alias_def in args.alias:
+            # Split on first colon only
+            parts = alias_def.split(":", 1)
+            if len(parts) != 2:
+                io.tool_error(f"Invalid alias format: {alias_def}")
+                io.tool_output("Format should be: alias:model-name")
+                return 1
+            alias, model = parts
+            models.MODEL_ALIASES[alias.strip()] = model.strip()
+
     if not args.model:
         args.model = "gpt-4o-2024-08-06"
         if os.environ.get("ANTHROPIC_API_KEY"):
@@ -751,7 +776,12 @@ def main(argv=None, input=None, output=None, force_git_root=None, return_coder=F
             num_cache_warming_pings=args.cache_keepalive_pings,
             suggest_shell_commands=args.suggest_shell_commands,
             chat_language=args.chat_language,
+            detect_urls=args.detect_urls,
         )
+    except UnknownEditFormat as err:
+        io.tool_error(str(err))
+        io.offer_url(urls.edit_formats, "Open documentation about edit formats?")
+        return 1
     except ValueError as err:
         io.tool_error(str(err))
         return 1

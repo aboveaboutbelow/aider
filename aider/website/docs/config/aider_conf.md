@@ -142,6 +142,14 @@ cog.outl("```")
 ## Specify a file with context window and costs for unknown models
 #model-metadata-file: .aider.model.metadata.json
 
+## Add a model alias (can be used multiple times)
+#alias: xxx
+## Specify multiple values like this:
+#alias:
+#  - xxx
+#  - yyy
+#  - zzz
+
 ## Verify the SSL cert when connecting to models (default: True)
 #verify-ssl: true
 
@@ -423,6 +431,9 @@ cog.outl("```")
 
 ## Enable/disable fancy input with history and completion (default: True)
 #fancy-input: true
+
+## Enable/disable detection and offering to add URLs to chat (default: True)
+#detect-urls: true
 
 ## Specify which editor to use for the /editor command
 #editor: xxx
