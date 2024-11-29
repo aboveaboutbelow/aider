@@ -719,10 +719,12 @@ class Coder:
 
     def get_images_message(self, fnames):
         supports_images = self.main_model.info.get("supports_vision")
-        supports_pdfs = self.main_model.info.get("supports_pdf_input")
+        supports_pdfs = self.main_model.info.get("supports_pdf_input") or self.main_model.info.get(
+            "max_pdf_size_mb"
+        )
 
         # https://github.com/BerriAI/litellm/pull/6928
-        supports_pdfs = "claude-3-5-sonnet-20241022" in self.main_model.name
+        supports_pdfs = supports_pdfs or "claude-3-5-sonnet-20241022" in self.main_model.name
 
         if not (supports_images or supports_pdfs):
             return None
@@ -769,6 +771,7 @@ class Coder:
         self.lint_outcome = None
         self.test_outcome = None
         self.shell_commands = []
+        self.message_cost = 0
 
         if self.repo:
             self.commit_before_message.append(self.repo.get_head_commit_sha())
@@ -1396,9 +1399,7 @@ class Coder:
             res.append("- Ask for smaller changes in each request.")
             res.append("- Break your code into smaller source files.")
             if "diff" not in self.main_model.edit_format:
-                res.append(
-                    "- Use a stronger model like gpt-4o, sonnet or opus that can return diffs."
-                )
+                res.append("- Use a stronger model that can return diffs.")
 
         if input_tokens >= max_input_tokens or total_tokens >= max_input_tokens:
             res.append("")

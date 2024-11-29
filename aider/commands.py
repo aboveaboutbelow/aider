@@ -812,16 +812,20 @@ class Commands:
             # Expand tilde and convert to absolute path
             expanded_word = os.path.abspath(os.path.expanduser(word))
 
-            # Handle read-only files
-            read_only_matched = [f for f in self.coder.abs_read_only_fnames if os.path.samefile(expanded_word, f)]
+            # Handle read-only files with substring matching
+            read_only_matched = [f for f in self.coder.abs_read_only_fnames if expanded_word in f]
+            for matched_file in read_only_matched:
+                self.coder.abs_read_only_fnames.remove(matched_file)
+                self.io.tool_output(f"Removed read-only file {matched_file} from the chat")
 
-            if read_only_matched:
-                for matched_file in read_only_matched:
-                    self.coder.abs_read_only_fnames.remove(matched_file)
-                    self.io.tool_output(f"Removed read-only file {matched_file} from the chat")
-                continue
-
-            matched_files = self.glob_filtered_to_repo(expanded_word)
+            # For editable files, use glob if word contains glob chars, otherwise use substring
+            if any(c in expanded_word for c in "*?[]"):
+                matched_files = self.glob_filtered_to_repo(expanded_word)
+            else:
+                # Use substring matching like we do for read-only files
+                matched_files = [
+                    self.coder.get_rel_fname(f) for f in self.coder.abs_fnames if expanded_word in f
+                ]
 
             if not matched_files:
                 matched_files.append(expanded_word)
