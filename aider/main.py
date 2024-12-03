@@ -28,6 +28,7 @@ from aider.models import ModelSettings
 from aider.repo import ANY_GIT_ERROR, GitRepo
 from aider.report import report_uncaught_exceptions
 from aider.versioncheck import check_version, install_from_main_branch, install_upgrade
+from aider.watch import FileWatcher
 
 from .dump import dump  # noqa: F401
 
@@ -813,6 +814,15 @@ def main(argv=None, input=None, output=None, force_git_root=None, return_coder=F
     if return_coder:
         analytics.event("exit", reason="Returning coder object")
         return coder
+
+    ignores = []
+    if git_root:
+        ignores.append(str(Path(git_root) / ".gitignore"))
+    if args.aiderignore:
+        ignores.append(args.aiderignore)
+
+    if args.watch_files:
+        FileWatcher(coder, gitignores=ignores, verbose=args.verbose)
 
     coder.show_announcements()
 
