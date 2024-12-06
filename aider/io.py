@@ -1,5 +1,6 @@
 import base64
 import os
+import signal
 import time
 import webbrowser
 from collections import defaultdict
@@ -11,8 +12,10 @@ from pathlib import Path
 from prompt_toolkit.completion import Completer, Completion, ThreadedCompleter
 from prompt_toolkit.cursor_shapes import ModalCursorShapeConfig
 from prompt_toolkit.enums import EditingMode
+from prompt_toolkit.filters import Condition
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.keys import Keys
 from prompt_toolkit.lexers import PygmentsLexer
 from prompt_toolkit.shortcuts import CompleteStyle, PromptSession
 from prompt_toolkit.styles import Style
@@ -318,7 +321,7 @@ class InputOutput:
             self.tool_error(f"{filename}: {e}")
             return
 
-    def read_text(self, filename):
+    def read_text(self, filename, silent=False):
         if is_image_file(filename):
             return self.read_image(filename)
 
@@ -326,17 +329,21 @@ class InputOutput:
             with open(str(filename), "r", encoding=self.encoding) as f:
                 return f.read()
         except OSError as err:
-            self.tool_error(f"{filename}: unable to read: {err}")
+            if not silent:
+                self.tool_error(f"{filename}: unable to read: {err}")
             return
         except FileNotFoundError:
-            self.tool_error(f"{filename}: file not found error")
+            if not silent:
+                self.tool_error(f"{filename}: file not found error")
             return
         except IsADirectoryError:
-            self.tool_error(f"{filename}: is a directory")
+            if not silent:
+                self.tool_error(f"{filename}: is a directory")
             return
         except UnicodeError as e:
-            self.tool_error(f"{filename}: {e}")
-            self.tool_error("Use --encoding to set the unicode encoding.")
+            if not silent:
+                self.tool_error(f"{filename}: {e}")
+                self.tool_error("Use --encoding to set the unicode encoding.")
             return
 
     def write_text(self, filename, content, max_retries=5, initial_delay=0.1):
@@ -422,7 +429,16 @@ class InputOutput:
             )
         )
 
+        def suspend_to_bg(event):
+            """Suspend currently running application."""
+            event.app.suspend_to_background()
+
         kb = KeyBindings()
+
+        @kb.add(Keys.ControlZ, filter=Condition(lambda: hasattr(signal, "SIGTSTP")))
+        def _(event):
+            "Suspend to background with ctrl-z"
+            suspend_to_bg(event)
 
         @kb.add("c-space")
         def _(event):

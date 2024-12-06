@@ -46,6 +46,8 @@ class Commands:
             verify_ssl=self.verify_ssl,
             args=self.args,
             parser=self.parser,
+            verbose=self.verbose,
+            editor=self.editor,
         )
 
     def __init__(
@@ -592,6 +594,10 @@ class Commands:
 
         self.io.tool_output(f"Diff since {commit_before_message[:7]}...")
 
+        if self.coder.pretty:
+            run_cmd(f"git diff {commit_before_message}")
+            return
+
         diff = self.coder.repo.diff_commits(
             self.coder.pretty,
             commit_before_message,
@@ -924,6 +930,9 @@ class Commands:
                 dict(role="user", content=msg),
                 dict(role="assistant", content="Ok."),
             ]
+
+            if add and exit_status != 0:
+                self.io.placeholder = "Fix that"
 
     def cmd_exit(self, args):
         "Exit the application"
